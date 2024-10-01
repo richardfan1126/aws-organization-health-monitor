@@ -1,0 +1,39 @@
+---
+ops_account_id: "123456789012"
+
+slack_workspace_name: My Slack Workspace
+
+alternate_contacts:
+  default:
+    billing:
+      name: Finance Team
+      title: Finance Team
+      email: finance@example.com
+      phone: "1234567890"
+    operations:
+      name: Operations Team
+      title: Operations Team
+      email: ops@example.com
+      phone: "1234567890"
+    security:
+      name: Security Team
+      title: Security Team
+      email: security@example.com
+      phone: "1234567890"
+
+  "123456789012":
+    billing:
+      name: Another Finance Team
+      title: Another Finance Team
+      email: finance2@example.com
+      phone: "2345678901"
+    operations:
+      name: Another Operation Team
+      title: Another Operations Team
+      email: ops2@example.com
+      phone: "2345678901"
+    security:
+      name: Another Security Team
+      title: Another Security Team
+      email: security2@example.com
+      phone: "2345678901"

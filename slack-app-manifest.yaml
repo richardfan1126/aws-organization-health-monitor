@@ -1,0 +1,16 @@
+display_information:
+  name: terraform-bot
+features:
+  bot_user:
+    display_name: terraform-bot
+    always_online: false
+oauth_config:
+  scopes:
+    bot:
+      - channels:join
+      - channels:manage
+      - channels:read
+settings:
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false
