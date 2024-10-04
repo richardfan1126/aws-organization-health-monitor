@@ -3,6 +3,10 @@ resource "aws_sns_topic" "account_health_notification" {
   name     = "account-health-notification-${each.key}"
 }
 
+resource "aws_cloudwatch_log_group" "step_function_log_group" {
+  name = "/aws/vendedlogs/states/publish-account-health-notification-Logs"
+}
+
 resource "aws_iam_role" "step_function_role" {
   name = "account-health-notification-step-function-role"
   assume_role_policy = jsonencode({
@@ -19,7 +23,7 @@ resource "aws_iam_role" "step_function_role" {
   })
 }
 
-data "aws_iam_policy_document" "sns_publish" {
+data "aws_iam_policy_document" "step_function_policy" {
   statement {
     actions = [
       "sns:Publish"
@@ -29,19 +33,44 @@ data "aws_iam_policy_document" "sns_publish" {
       "arn:aws:sns:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:account-health-notification-*"
     ]
   }
+
+  statement {
+    actions = [
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+      "logs:CreateLogDelivery",
+      "logs:GetLogDelivery",
+      "logs:UpdateLogDelivery",
+      "logs:DeleteLogDelivery",
+      "logs:ListLogDeliveries",
+      "logs:PutResourcePolicy",
+      "logs:DescribeResourcePolicies",
+      "logs:DescribeLogGroups"
+    ]
+
+    resources = [
+      "*"
+    ]
+  }
 }
 
-resource "aws_iam_role_policy" "sns_publish" {
-  name = "account-health-notification-sns-publish"
+resource "aws_iam_role_policy" "step_function_policy" {
+  name = "account-health-notification-step-function"
   role = aws_iam_role.step_function_role.id
 
-  policy = data.aws_iam_policy_document.sns_publish.json
+  policy = data.aws_iam_policy_document.step_function_policy.json
 }
 
 resource "aws_sfn_state_machine" "publish_account_health_notification" {
   name     = "publish-account-health-notification"
   type     = "EXPRESS"
   role_arn = aws_iam_role.step_function_role.arn
+
+  logging_configuration {
+    log_destination        = "${aws_cloudwatch_log_group.step_function_log_group.arn}:*"
+    include_execution_data = true
+    level                  = "ALL"
+  }
 
   definition = <<EOF
 {
