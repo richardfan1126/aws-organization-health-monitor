@@ -10,7 +10,7 @@ resource "slack_conversation" "account_notification_channel" {
 }
 
 resource "aws_iam_role" "chatbot_role" {
-  name = "account-health-notification-chatbot-role"
+  name = "${local.project_name}-chatbot-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -28,7 +28,7 @@ resource "aws_iam_role" "chatbot_role" {
 resource "aws_chatbot_slack_channel_configuration" "account_notification_channel" {
   for_each = local.all_account_ids
 
-  configuration_name    = "account-health-notification-${each.key}"
+  configuration_name    = "${local.project_name}-${each.key}"
   slack_channel_id      = slack_conversation.account_notification_channel[each.key].id
   slack_team_id         = data.aws_chatbot_slack_workspace.main.slack_team_id
   iam_role_arn          = aws_iam_role.chatbot_role.arn
