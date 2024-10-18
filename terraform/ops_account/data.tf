@@ -27,6 +27,8 @@ locals {
   stackset_name           = "${local.project_name}-stackset"
   stackset_exec_role_name = "${local.project_name}-stackset-exec-role"
 
+  slack_channel_name = "aws-health-notification"
+
   eventbridge_rule_pattern = jsonencode({
     detail-type = [
       "AWS Health Event",

@@ -1,7 +1,7 @@
 resource "slack_conversation" "account_notification_channel" {
   for_each = local.all_account_ids
 
-  name                               = "aws-health-notification-${each.key}"
+  name                               = "${local.slack_channel_name}-${each.key}"
   topic                              = "AWS notification for account ${each.key}"
   is_private                         = false
   adopt_existing_channel             = true

@@ -1,8 +1,10 @@
+# SNS Topic
 resource "aws_sns_topic" "account_health_notification" {
   for_each = local.all_account_ids
   name     = "${local.project_name}-${each.key}"
 }
 
+# Step Function
 resource "aws_cloudwatch_log_group" "step_function_log_group" {
   name = "/aws/vendedlogs/states/${local.project_name}-step-function-Logs"
 }
@@ -91,6 +93,7 @@ resource "aws_sfn_state_machine" "publish_account_health_notification" {
 EOF
 }
 
+# Centralized EventBridge
 resource "aws_iam_role" "centralized_cloudwatch_event_role" {
   name = "${local.project_name}-centralized-event-role"
   assume_role_policy = jsonencode({
@@ -146,6 +149,7 @@ resource "aws_cloudwatch_event_bus" "centralized_event_bus" {
   name = local.project_name
 }
 
+# IAM role for regional EventBridge
 resource "aws_iam_role" "regional_cloudwatch_event_role" {
   name = "${local.project_name}-regional-event-role"
   assume_role_policy = jsonencode({
@@ -181,6 +185,7 @@ resource "aws_iam_role_policy" "regional_cloudwatch_event_role" {
   policy = data.aws_iam_policy_document.regional_cloudwatch_event_policy.json
 }
 
+# IAM roles for StackSet
 resource "aws_iam_role" "stackset_admin_role" {
   name = "${local.stackset_name}-admin-role"
   assume_role_policy = jsonencode({
@@ -307,6 +312,7 @@ resource "aws_iam_role_policy" "stackset_execution_role" {
   policy = data.aws_iam_policy_document.stackset_execution_role_policy.json
 }
 
+# CloudFormation StackSet
 resource "aws_cloudformation_stack_set" "regional_resource_stackset" {
   depends_on = [
     aws_iam_role.stackset_admin_role,
