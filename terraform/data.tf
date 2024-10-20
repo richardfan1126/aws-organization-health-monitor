@@ -18,7 +18,7 @@ locals {
   member_account_ids = toset(data.aws_organizations_organization.main.non_master_accounts[*].id)
   all_account_ids    = toset(data.aws_organizations_organization.main.accounts[*].id)
 
-  config               = yamldecode(file("${path.module}/../../config.yaml"))
+  config               = yamldecode(file("${path.module}/../config.yaml"))
   alternate_contacts   = local.config["alternate_contacts"]
   slack_workspace_name = local.config["slack_workspace_name"]
   deployment_regions   = local.config["deployment_regions"]
