@@ -32,10 +32,12 @@ locals {
   eventbridge_rule_pattern = jsonencode({
     detail-type = [
       "AWS Health Event",
-      "AWS Health Abuse Event"
     ]
     source = [
       "aws.health"
+    ]
+    "detail.page" = [
+      "1"
     ]
   })
 }
