@@ -74,23 +74,22 @@ resource "aws_sfn_state_machine" "publish_account_health_notification" {
     level                  = "ALL"
   }
 
-  definition = <<EOF
-{
-  "Comment": "A state machine to publish AWS Health events to the relative SNS topic",
-  "StartAt": "SNS Publish",
-  "States": {
-    "SNS Publish": {
-      "Type": "Task",
-      "Resource": "arn:aws:states:::aws-sdk:sns:publish",
-      "Parameters": {
-        "Message.$": "$",
-        "TopicArn.$": "States.Format('arn:aws:sns:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${local.project_name}-{}',$.detail.affectedAccount)"
-      },
-      "End": true
+  definition = jsonencode({
+    Comment       = "A state machine to publish AWS Health events to the relative SNS topic"
+    QueryLanguage = "JSONata"
+    StartAt       = "SNS Publish"
+    States = {
+      "SNS Publish" = {
+        Type     = "Task"
+        Resource = "arn:aws:states:::aws-sdk:sns:publish"
+        Arguments = {
+          Message  = "{% $states.input %}"
+          TopicArn = "{% 'arn:aws:sns:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${local.project_name}-' & $states.input.detail.affectedAccount %}"
+        },
+        End = true
+      }
     }
-  }
-}
-EOF
+  })
 }
 
 # Centralized EventBridge
