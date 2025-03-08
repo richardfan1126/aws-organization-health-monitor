@@ -15,8 +15,8 @@ resource "random_string" "random" {
 }
 
 locals {
-  member_account_ids = toset(data.aws_organizations_organization.main.non_master_accounts[*].id)
-  all_account_ids    = toset(data.aws_organizations_organization.main.accounts[*].id)
+  member_account_ids = toset([for account in data.aws_organizations_organization.main.non_master_accounts : account.id if account.status == "ACTIVE"])
+  all_account_ids    = toset([for account in data.aws_organizations_organization.main.accounts : account.id if account.status == "ACTIVE"])
 
   config               = yamldecode(file("${path.module}/../config.yaml"))
   alternate_contacts   = local.config["alternate_contacts"]
