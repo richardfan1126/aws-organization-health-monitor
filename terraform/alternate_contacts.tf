@@ -1,5 +1,5 @@
 resource "aws_account_alternate_contact" "billing" {
-  for_each = local.member_account_ids
+  for_each = local.alternate_contacts.enabled ? local.member_account_ids : toset([])
 
   alternate_contact_type = "BILLING"
   account_id             = each.key
@@ -11,7 +11,7 @@ resource "aws_account_alternate_contact" "billing" {
 }
 
 resource "aws_account_alternate_contact" "operations" {
-  for_each = local.member_account_ids
+  for_each = local.alternate_contacts.enabled ? local.member_account_ids : toset([])
 
   alternate_contact_type = "OPERATIONS"
   account_id             = each.key
@@ -23,7 +23,7 @@ resource "aws_account_alternate_contact" "operations" {
 }
 
 resource "aws_account_alternate_contact" "security" {
-  for_each = local.member_account_ids
+  for_each = local.alternate_contacts.enabled ? local.member_account_ids : toset([])
 
   alternate_contact_type = "SECURITY"
   account_id             = each.key

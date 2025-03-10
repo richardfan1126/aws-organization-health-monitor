@@ -19,7 +19,7 @@ locals {
   all_account_ids    = toset([for account in data.aws_organizations_organization.main.accounts : account.id if account.status == "ACTIVE"])
 
   config               = yamldecode(file("${path.module}/../config.yaml"))
-  alternate_contacts   = local.config["alternate_contacts"]
+  alternate_contacts   = try(local.config["alternate_contacts"], { enabled : false })
   slack_workspace_name = local.config["slack_workspace_name"]
   deployment_regions   = local.config["deployment_regions"]
 

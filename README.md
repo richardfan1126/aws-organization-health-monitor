@@ -46,6 +46,7 @@ cd aws-organization-health-monitor
 - Edit the `config.yaml` file to update:
    - The Slack workspace name that you have just installed the Slack app to
    - The alternate contacts of the AWS accounts that will be configured via Terraform later
+   - Set `alternate_contacts.enabled` to `true` if you want to enable alternate contact configuration for AWS accounts. If set to `false`, alternate contacts will not be updated.
 
 ### 6. **Configure Terraform credentials:**
 
