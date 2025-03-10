@@ -21,6 +21,8 @@ deployment_regions:
   - sa-east-1
 
 alternate_contacts:
+  enabled: false
+
   default:
     billing:
       name: Finance Team
