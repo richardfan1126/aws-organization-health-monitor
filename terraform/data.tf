@@ -36,8 +36,16 @@ locals {
     source = [
       "aws.health"
     ]
-    "detail.page" = [
-      "1"
-    ]
+    "detail" = {
+      "page" = [
+        "1" # Avoid processing multiple pages of the same event
+      ]
+      "eventTypeCategory" = [
+        "issue",
+        "accountNotification",
+        "scheduledChange",
+        "investigation"
+      ]
+    }
   })
 }
