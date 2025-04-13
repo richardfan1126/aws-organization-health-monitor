@@ -36,6 +36,33 @@ data "aws_iam_policy_document" "step_function_policy" {
     ]
   }
 
+  # Allow invoking Bedrock model via inference profile
+  statement {
+    actions = [
+      "bedrock:InvokeModel"
+    ]
+
+    resources = [
+      "arn:aws:bedrock:*::foundation-model/${local.bedrock_model_id}"
+    ]
+
+    condition {
+      test     = "StringLike"
+      variable = "bedrock:InferenceProfileArn"
+      values   = [aws_bedrock_inference_profile.amazon_nova_micro.arn]
+    }
+  }
+
+  statement {
+    actions = [
+      "bedrock:InvokeModel"
+    ]
+
+    resources = [
+      aws_bedrock_inference_profile.amazon_nova_micro.arn
+    ]
+  }
+
   statement {
     actions = [
       "logs:CreateLogStream",
