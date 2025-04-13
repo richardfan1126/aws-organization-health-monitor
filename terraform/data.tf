@@ -48,4 +48,27 @@ locals {
       ]
     }
   })
+
+  # Mapping of supported Bedrock cross-region inference profiles
+  # (https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html#inference-profiles-support-system)
+  bedrock_inference_profile_region_mapping = {
+    "us-east-1" = "us"
+    "us-east-2" = "us"
+    "us-west-2" = "us"
+
+    "eu-west-1"    = "eu"
+    "eu-west-3"    = "eu"
+    "eu-south-1"   = "eu"
+    "eu-south-2"   = "eu"
+    "eu-north-1"   = "eu"
+    "eu-central-1" = "eu"
+
+    "ap-southeast-1" = "apac"
+    "ap-southeast-2" = "apac"
+    "ap-south-1"     = "apac"
+    "ap-northeast-1" = "apac"
+    "ap-northeast-2" = "apac"
+  }
+  bedrock_inference_profile_region = local.bedrock_inference_profile_region_mapping[data.aws_region.current.name]
+  bedrock_model_id                 = "amazon.nova-micro-v1:0"
 }
