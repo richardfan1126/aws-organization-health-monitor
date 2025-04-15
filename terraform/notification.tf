@@ -104,15 +104,73 @@ resource "aws_sfn_state_machine" "publish_account_health_notification" {
   definition = jsonencode({
     Comment       = "A state machine to publish AWS Health events to the relative SNS topic"
     QueryLanguage = "JSONata"
-    StartAt       = "SNS Publish"
+    StartAt       = "Set Variables"
     States = {
+      "Set Variables" = {
+        Type = "Pass"
+        Assign = {
+          affectedAccount = "{% $states.input.detail.affectedAccount %}"
+          description     = "{% $states.input.detail.eventDescription[0].latestDescription %}"
+          communicationId = "{% $states.input.detail.communicationId %}"
+        }
+        Next = "Bedrock InvokeModel"
+      }
+
+      "Bedrock InvokeModel" = {
+        Type     = "Task"
+        Resource = "arn:aws:states:::bedrock:invokeModel"
+        Arguments = {
+          ModelId = aws_bedrock_inference_profile.amazon_nova_micro.arn
+          Body = {
+            schemaVersion = "messages-v1"
+            messages = [
+              {
+                role = "user"
+                content = [
+                  {
+                    text = "{% $states.input.detail.eventDescription[0].latestDescription %}"
+                  }
+                ]
+              }
+            ]
+            system = [
+              {
+                text = "Generate a short title for this event"
+              }
+            ]
+            inferenceConfig = {
+              maxTokens   = 1000
+              topP        = 0.9
+              topK        = 20
+              temperature = 0.7
+            }
+          }
+        }
+        Assign = {
+          title = "{% $states.result.Body.output.message.content[0].text %}"
+        }
+        Next = "SNS Publish"
+      }
+
       "SNS Publish" = {
         Type     = "Task"
         Resource = "arn:aws:states:::aws-sdk:sns:publish"
         Arguments = {
-          Message  = "{% $states.input %}"
-          TopicArn = "{% 'arn:aws:sns:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${local.project_name}-' & $states.input.detail.affectedAccount %}"
-        },
+          Message = {
+            version  = "1.0"
+            source   = "custom"
+            textType = "client-markdown"
+            content = {
+              title       = "{% $title %}"
+              description = "{% $description %}"
+            }
+            metadata = {
+              enableCustomActions = false
+              threadId            = "{% $communicationId %}"
+            }
+          }
+          TopicArn = "{% 'arn:aws:sns:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${local.project_name}-' & $affectedAccount %}"
+        }
         End = true
       }
     }
