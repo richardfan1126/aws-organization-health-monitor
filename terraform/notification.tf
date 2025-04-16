@@ -149,10 +149,10 @@ resource "aws_sfn_state_machine" "publish_account_health_notification" {
         Assign = {
           title = "{% $states.result.Body.output.message.content[0].text %}"
         }
-        Next = "SNS Publish"
+        Next = "SNS Publish Title"
       }
 
-      "SNS Publish" = {
+      "SNS Publish Title" = {
         Type     = "Task"
         Resource = "arn:aws:states:::aws-sdk:sns:publish"
         Arguments = {
@@ -162,6 +162,33 @@ resource "aws_sfn_state_machine" "publish_account_health_notification" {
             textType = "client-markdown"
             content = {
               title       = "{% $title %}"
+              description = "_(See detail below)_"
+            }
+            metadata = {
+              enableCustomActions = false
+              threadId            = "{% $communicationId %}"
+            }
+          }
+          TopicArn = "{% 'arn:aws:sns:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${local.project_name}-' & $affectedAccount %}"
+        }
+        Next = "Wait"
+      }
+
+      "Wait" = {
+        Type    = "Wait"
+        Seconds = 2
+        Next    = "SNS Publish Description"
+      }
+
+      "SNS Publish Description" = {
+        Type     = "Task"
+        Resource = "arn:aws:states:::aws-sdk:sns:publish"
+        Arguments = {
+          Message = {
+            version  = "1.0"
+            source   = "custom"
+            textType = "client-markdown"
+            content = {
               description = "{% $description %}"
             }
             metadata = {
