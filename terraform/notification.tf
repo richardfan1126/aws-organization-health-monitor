@@ -113,10 +113,10 @@ resource "aws_sfn_state_machine" "publish_account_health_notification" {
           description     = "{% $states.input.detail.eventDescription[0].latestDescription %}"
           communicationId = "{% $states.input.detail.communicationId %}"
         }
-        Next = "Bedrock InvokeModel"
+        Next = "Bedrock Generate Title"
       }
 
-      "Bedrock InvokeModel" = {
+      "Bedrock Generate Title" = {
         Type     = "Task"
         Resource = "arn:aws:states:::bedrock:invokeModel"
         Arguments = {
@@ -128,7 +128,7 @@ resource "aws_sfn_state_machine" "publish_account_health_notification" {
                 role = "user"
                 content = [
                   {
-                    text = "{% $states.input.detail.eventDescription[0].latestDescription %}"
+                    text = "{% $description %}"
                   }
                 ]
               }
@@ -140,14 +140,48 @@ resource "aws_sfn_state_machine" "publish_account_health_notification" {
             ]
             inferenceConfig = {
               maxTokens   = 1000
-              topP        = 0.9
-              topK        = 20
-              temperature = 0.7
+              topP        = 0.1
+              temperature = 0
             }
           }
         }
         Assign = {
           title = "{% $states.result.Body.output.message.content[0].text %}"
+        }
+        Next = "Bedrock Generate Summary"
+      }
+
+      "Bedrock Generate Summary" = {
+        Type     = "Task"
+        Resource = "arn:aws:states:::bedrock:invokeModel"
+        Arguments = {
+          ModelId = aws_bedrock_inference_profile.amazon_nova_micro.arn
+          Body = {
+            schemaVersion = "messages-v1"
+            messages = [
+              {
+                role = "user"
+                content = [
+                  {
+                    text = "{% $description %}"
+                  }
+                ]
+              }
+            ]
+            system = [
+              {
+                text = "If I don't take action on this AWS Health event, would my resource break? Summarize within 50 words"
+              }
+            ]
+            inferenceConfig = {
+              maxTokens   = 1000
+              topP        = 0.1
+              temperature = 0
+            }
+          }
+        }
+        Assign = {
+          summary = "{% $states.result.Body.output.message.content[0].text %}"
         }
         Next = "SNS Publish Title"
       }
@@ -162,7 +196,7 @@ resource "aws_sfn_state_machine" "publish_account_health_notification" {
             textType = "client-markdown"
             content = {
               title       = "{% $title %}"
-              description = "_(See detail below)_"
+              description = "{% $summary %}"
             }
             metadata = {
               enableCustomActions = false
