@@ -109,9 +109,11 @@ resource "aws_sfn_state_machine" "publish_account_health_notification" {
       "Set Variables" = {
         Type = "Pass"
         Assign = {
-          affectedAccount = "{% $states.input.detail.affectedAccount %}"
-          description     = "{% $states.input.detail.eventDescription[0].latestDescription %}"
-          communicationId = "{% $states.input.detail.communicationId %}"
+          affectedAccount   = "{% $states.input.detail.affectedAccount %}"
+          description       = "{% $states.input.detail.eventDescription[0].latestDescription %}"
+          communicationId   = "{% $states.input.detail.communicationId %}"
+          notificationLink  = "{% 'https://health.console.aws.amazon.com/health/home#/account/event-log?eventID=' & $states.input.detail.eventArn %}",
+          affectedResources = "{% ($result:=$join($map($filter($states.input.detail.affectedEntities,function($v, $i, $a) {$v.status})[],function($v, $i, $a) {'[' & $v.status & '] ' & $v.entityValue})[],\"\\n\");$result ? $result : false) %}"
         }
         Next = "Bedrock Generate Title"
       }
@@ -170,7 +172,7 @@ resource "aws_sfn_state_machine" "publish_account_health_notification" {
             ]
             system = [
               {
-                text = "If I don't take action on this AWS Health event, would my resource break? Summarize within 50 words"
+                text = "If I don't take action on this AWS Health event, would my resource break? Summarize within 30 words"
               }
             ]
             inferenceConfig = {
@@ -197,6 +199,9 @@ resource "aws_sfn_state_machine" "publish_account_health_notification" {
             content = {
               title       = "{% $title %}"
               description = "{% $summary %}"
+              nextSteps = [
+                "{% '<' & $notificationLink & '|View detail on AWS console>' %}"
+              ]
             }
             metadata = {
               enableCustomActions = false
@@ -205,10 +210,10 @@ resource "aws_sfn_state_machine" "publish_account_health_notification" {
           }
           TopicArn = "{% 'arn:aws:sns:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${local.project_name}-' & $affectedAccount %}"
         }
-        Next = "Wait"
+        Next = "Wait_1"
       }
 
-      "Wait" = {
+      "Wait_1" = {
         Type    = "Wait"
         Seconds = 2
         Next    = "SNS Publish Description"
@@ -232,7 +237,49 @@ resource "aws_sfn_state_machine" "publish_account_health_notification" {
           }
           TopicArn = "{% 'arn:aws:sns:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${local.project_name}-' & $affectedAccount %}"
         }
-        End = true
+        Next = "Check Affected Resources Exist"
+      }
+
+      "Check Affected Resources Exist" = {
+        Type = "Choice"
+        Choices = [
+          {
+            Condition = "{% $affectedResources != false %}"
+            Next      = "Wait_2"
+          }
+        ]
+        Default = "End"
+      }
+
+      "Wait_2" = {
+        Type    = "Wait"
+        Seconds = 2
+        Next    = "SNS Publish Affected Resources"
+      }
+
+      "SNS Publish Affected Resources" = {
+        Type     = "Task"
+        Resource = "arn:aws:states:::aws-sdk:sns:publish"
+        Arguments = {
+          Message = {
+            content = {
+              description = "{% 'Affected resourses:\n' & $affectedResources %}"
+            }
+            metadata = {
+              enableCustomActions = false
+              threadId            = "{% $communicationId %}"
+            }
+            source   = "custom"
+            textType = "client-markdown"
+            version  = "1.0"
+          }
+          TopicArn = "{% 'arn:aws:sns:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${local.project_name}-' & $affectedAccount %}"
+        }
+        Next = "End"
+      }
+
+      "End" = {
+        Type = "Succeed"
       }
     }
   })
