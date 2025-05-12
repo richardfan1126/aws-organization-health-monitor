@@ -111,7 +111,7 @@ resource "aws_sfn_state_machine" "publish_account_health_notification" {
         Assign = {
           affectedAccount   = "{% $states.input.detail.affectedAccount %}"
           description       = "{% $states.input.detail.eventDescription[0].latestDescription %}"
-          communicationId   = "{% $states.input.detail.communicationId %}"
+          eventArn          = "{% $states.input.detail.eventArn %}"
           notificationLink  = "{% 'https://health.console.aws.amazon.com/health/home#/account/event-log?eventID=' & $states.input.detail.eventArn %}",
           affectedResources = "{% ($result:=$join($map($filter($states.input.detail.affectedEntities,function($v, $i, $a) {$v.status})[],function($v, $i, $a) {'[' & $v.status & '] ' & $v.entityValue})[],\"\\n\");$result ? $result : false) %}"
         }
@@ -205,7 +205,7 @@ resource "aws_sfn_state_machine" "publish_account_health_notification" {
             }
             metadata = {
               enableCustomActions = false
-              threadId            = "{% $communicationId %}"
+              threadId            = "{% $eventArn %}"
             }
           }
           TopicArn = "{% 'arn:aws:sns:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${local.project_name}-' & $affectedAccount %}"
@@ -232,7 +232,7 @@ resource "aws_sfn_state_machine" "publish_account_health_notification" {
             }
             metadata = {
               enableCustomActions = false
-              threadId            = "{% $communicationId %}"
+              threadId            = "{% $eventArn %}"
             }
           }
           TopicArn = "{% 'arn:aws:sns:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${local.project_name}-' & $affectedAccount %}"
@@ -267,7 +267,7 @@ resource "aws_sfn_state_machine" "publish_account_health_notification" {
             }
             metadata = {
               enableCustomActions = false
-              threadId            = "{% $communicationId %}"
+              threadId            = "{% $eventArn %}"
             }
             source   = "custom"
             textType = "client-markdown"
